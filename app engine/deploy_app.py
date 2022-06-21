@@ -2,8 +2,12 @@
 import subprocess
 import argparse
 import logging
-logging.getLogger().setLevel(logging.INFO)
+import os
 
+
+__version__ = "1.0.0"
+
+logging.getLogger().setLevel(logging.INFO)
 
 PROD_PROJECT = "patent-box"
 TEST_PROJECT = "patent-box-staging"  # PROD_PROJECT
@@ -17,30 +21,25 @@ def set_project(project):
     process.wait()
 
 
-def _modify_secrets(remove_credentials):
+def _pre_deploy():
 
-    # remove gcloud credentials from secrets
-    lines = []
-    with open("secrets.env", 'r') as ofile:
-        lines = ofile.readlines()
+    if not os.path.exists("es_utilities"):
+        logging.error("es_utilities not found in current directory, install it manually")
+        raise RuntimeError("es_utilities not found in current directory, install it manually")
 
-    for idx, line in enumerate(lines):
-        if remove_credentials:
-            if line.startswith("GOOGLE_APPLICATION_CREDENTIALS="):
-                lines[idx] = "#" + line
-                break
-        else:
-            if line.startswith("#GOOGLE_APPLICATION_CREDENTIALS="):
-                lines[idx] = line[1:]
-                break
+    process = subprocess.Popen("cd vueapp".split(), stdout=subprocess.PIPE)
+    process.wait()
+    process = subprocess.Popen("npm run build".split(), stdout=subprocess.PIPE)
+    process.wait()
 
-    with open("secrets.env", 'w') as ofile:
-        ofile.writelines(lines)
+
+def _post_deploy():
+    ...
 
 
 def deploy_ae(promote=False):
 
-    # _modify_secrets(True)
+    _pre_deploy()
 
     command = "gcloud app deploy"
 
@@ -50,8 +49,7 @@ def deploy_ae(promote=False):
     process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
     process.wait()
 
-    # remove gcloud credentials from secrets
-    # _modify_secrets(False)
+    _post_deploy()
 
 
 def main():
