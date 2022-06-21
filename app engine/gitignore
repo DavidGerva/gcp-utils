@@ -1,0 +1,11 @@
+myvenv
+env/
+.idea/
+db.*
+*.pyc
+media
+
+secrets_local.env
+secrets.env
+
+node_modules/

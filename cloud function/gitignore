@@ -1,0 +1,7 @@
+__pycache__/
+myvenv/
+
+secrets.env
+secrets_local.env
+
+*.docx
