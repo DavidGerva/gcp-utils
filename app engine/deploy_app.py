@@ -5,12 +5,15 @@ import logging
 import os
 
 
-__version__ = "1.0.0"
+__version__ = "1.2.0"
 
 logging.getLogger().setLevel(logging.INFO)
 
 PROD_PROJECT = "patent-box"
 TEST_PROJECT = "patent-box-staging"  # PROD_PROJECT
+
+CHECK_EXSISTANCE = ["es_utilities",
+                    "elastic_rsa_private_key.p12"]
 
 
 def set_project(project):
@@ -23,14 +26,16 @@ def set_project(project):
 
 def _pre_deploy():
 
-    if not os.path.exists("es_utilities"):
-        logging.error("es_utilities not found in current directory, install it manually")
-        raise RuntimeError("es_utilities not found in current directory, install it manually")
+    for element in CHECK_EXSISTANCE:
+        if not os.path.exists(element):
+            raise RuntimeError(f"The given {element} does not exist")
 
-    process = subprocess.Popen("cd vueapp".split(), stdout=subprocess.PIPE)
-    process.wait()
-    process = subprocess.Popen("npm run build".split(), stdout=subprocess.PIPE)
-    process.wait()
+    # check is datastore
+    # if not settings.USE_DATASTORE:
+    #     logging.error("USE_DATASTORE is False, deploy in datastore")
+    #     raise RuntimeError("USE_DATASTORE is False, deploy in datastore")
+
+    subprocess.run("npm run build".split(), cwd="vueapp")
 
 
 def _post_deploy():

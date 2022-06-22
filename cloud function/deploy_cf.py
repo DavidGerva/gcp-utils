@@ -9,7 +9,7 @@ logging.getLogger().setLevel(logging.INFO)
 
 
 # deploy_cf script version
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 
 # =============================================================================
@@ -22,6 +22,10 @@ ALSO_INCLUDE_ENV = False
 METHOD_NAME = 'generate_report'
 TIMEOUT = "540"  # "60" .. "540"
 MEMORY = "256MB"  # "512MB"  "1GB" .. "8GB"
+
+CHECK_EXSISTANCE = ["es_utilities",
+                    "elastic_rsa_private_key.p12"]
+
 # =============================================================================
 
 
@@ -46,25 +50,10 @@ def deploy_cf():
 def prepare_deploy():
     """
     This function is called before the deployment.
-    It comments some lines in .gitignore file.
     """
-    # lines_to_comment = [
-    #     "secrets.env\n",
-    #     "es_utilities*\n",
-    #     "trix_corpus_utils*\n"
-    #     ]
-
-    # lines = []
-    # with open(".gitignore", "r") as f:
-    #     lines = f.readlines()
-
-    # for idx, line in enumerate(lines):
-    #     if line in lines_to_comment:
-    #         lines[idx] = f"# {line}"
-
-    # with open(".gitignore", "w") as f:
-    #     f.writelines(lines)
-    ...
+    for element in CHECK_EXSISTANCE:
+        if not os.path.exists(element):
+            raise RuntimeError(f"The given {element} does not exist")
 
 
 def post_deploy():
