@@ -5,12 +5,13 @@ import logging
 import os
 
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
-logging.getLogger().setLevel(logging.INFO)
+logging.setLevel(logging.INFO)
 
 PROD_PROJECT = "patent-box"
 TEST_PROJECT = "patent-box-staging"  # PROD_PROJECT
+VERSION = None
 
 CHECK_EXSISTANCE = ["es_utilities",
                     "elastic_rsa_private_key.p12"]
@@ -20,9 +21,7 @@ def set_project(project):
 
     logging.warning(f"Setting project to {project}")
     command = f'gcloud config set project {project}'
-    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-    process.wait()
-
+    subprocess.run(command.split(), stdout=subprocess.PIPE)
 
 def _pre_deploy():
 
@@ -37,6 +36,9 @@ def _pre_deploy():
 
     subprocess.run("npm run build".split(), cwd="vueapp")
 
+    global VERSION
+    VERSION = None
+
 
 def _post_deploy():
     ...
@@ -46,7 +48,9 @@ def deploy_ae(promote=False):
 
     _pre_deploy()
 
-    command = "gcloud app deploy"
+    command = f"gcloud app deploy"
+    if VERSION is not None:
+        command += f"  --version {VERSION}"
 
     if not promote:
         command += " --no-promote"
