@@ -2,66 +2,97 @@
 import subprocess
 import argparse
 import logging
-import os
 
 
-__version__ = "1.3.0"
+__version__ = "2.0.0"
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-PROD_PROJECT = "patent-box"
-TEST_PROJECT = "patent-box-staging"  # PROD_PROJECT
-VERSION = None
 
-CHECK_EXSISTANCE = ["es_utilities",
-                    "elastic_rsa_private_key.p12"]
+class AppEngineDeployer():
+
+    def __init__(self, test_env=True, promote=False) -> None:
+        self.PROD_PROJECT = None
+        self.TEST_PROJECT = None
+        self.VERSION = None
+
+        self.test_env = test_env
+        self.promote = promote
+
+        self._set_variables()
+        if self.PROD_PROJECT is None:
+            raise RuntimeError("Vars not defined")
+
+        if self.PROD_PROJECT == self.TEST_PROJECT:
+            logger.warning("PROD_PROJECT and TEST_PROJECT are the same!")
+
+        logger.info(f"Deploying in {'test' if self.test_env else 'prod'} environment")
+        logger.info(f"Deploying in {'promote' if self.promote else 'NO promote'} environment")
+
+    def _set_variables(self):
+
+        if self.VERSION is not None and not self.promote:
+            self.VERSION += "-np"
+
+    def set_project(self):
+
+        project = self.TEST_PROJECT if self.test_env else self.PROD_PROJECT
+
+        logging.warning(f"Setting project to {project}")
+        command = f'gcloud config set project {project}'
+        subprocess.run(command.split(), stdout=subprocess.PIPE)
+
+    def _pre_deploy(self):
+        pass
+
+    def deploy_ae(self):
+
+        self._pre_deploy()
+
+        command = f"gcloud app deploy"
+        if self.VERSION is not None:
+            command += f"  --version {self.VERSION}"
+
+        if not self.promote:
+            command += " --no-promote"
+
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        process.wait()
+
+        # _post_deploy()
+
+# =================================
+# PARTE SPECIFICA
+# =================================
+
+# from patent_box import settings
 
 
-def set_project(project):
+class ActualDeployer(AppEngineDeployer):
 
-    logger.warning(f"Setting project to {project}")
-    command = f'gcloud config set project {project}'
-    subprocess.run(command.split(), stdout=subprocess.PIPE)
+    # TODO: edit here
+    def _set_variables(self):
+        self.PROD_PROJECT = "PROJECT_NAME"
+        self.TEST_PROJECT = self.PROD_PROJECT
 
-def _pre_deploy():
+        # self.VERSION = settings.__version__
+        # self.VERSION = self.VERSION.replace(".", "-")
 
-    for element in CHECK_EXSISTANCE:
-        if not os.path.exists(element):
-            raise RuntimeError(f"The given {element} does not exist")
+        return super()._set_variables()
 
-    # check is datastore
-    # if not settings.USE_DATASTORE:
-    #     logger.error("USE_DATASTORE is False, deploy in datastore")
-    #     raise RuntimeError("USE_DATASTORE is False, deploy in datastore")
+    def _pre_deploy(self):
 
-    subprocess.run("npm run build".split(), cwd="vueapp")
+        # check is datastore
+        # if not settings.USE_DATASTORE:
+        #     logging.error("USE_DATASTORE is False, deploy in datastore")
+        #     raise RuntimeError("USE_DATASTORE is False, deploy in datastore")
 
-    global VERSION
-    VERSION = None
-    # VERSION = settings.__version__
-    # VERSION = VERSION.replace(".", "-")
+        return super()._pre_deploy()
 
-
-def _post_deploy():
-    ...
-
-
-def deploy_ae(promote=False):
-
-    _pre_deploy()
-
-    command = f"gcloud app deploy"
-    if VERSION is not None:
-        command += f"  --version {VERSION}"
-
-    if not promote:
-        command += " --no-promote"
-
-    process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-    process.wait()
-
-    _post_deploy()
+# =================================
+# FINE PARTE SPECIFICA
+# =================================
 
 
 def main():
@@ -86,28 +117,24 @@ def main():
     # Read arguments from the command line
     args = parser.parse_args()
 
+    test = True
     if args.test:
-        logger.info("Deploying in test environment")
-        set_project(TEST_PROJECT)
+        test = True
     elif args.production:
-        logger.info("Deploying in production environment")
-        set_project(PROD_PROJECT)
+        test = False
     else:
         parser.error('No environment specified! add -t or -p')
 
     promote = False
     if args.promote:
-        logger.info("Deploying promote")
         promote = True
     elif args.no_promote:
-        logger.info("Deploying no promote")
+        promote = False
     else:
         parser.error('No promote/no promote specified! add --promote or --no-promote')
 
-    deploy_ae(promote=promote)
-
-    # TODO: restore previous project
-    # set_project('PROJ_NAME')
+    deployer = ActualDeployer(test_env=test, promote=promote)
+    deployer.deploy_ae()
 
 
 if __name__ == "__main__":
