@@ -7,7 +7,8 @@ import os
 
 __version__ = "1.3.0"
 
-logging.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 PROD_PROJECT = "patent-box"
 TEST_PROJECT = "patent-box-staging"  # PROD_PROJECT
@@ -19,7 +20,7 @@ CHECK_EXSISTANCE = ["es_utilities",
 
 def set_project(project):
 
-    logging.warning(f"Setting project to {project}")
+    logger.warning(f"Setting project to {project}")
     command = f'gcloud config set project {project}'
     subprocess.run(command.split(), stdout=subprocess.PIPE)
 
@@ -31,13 +32,15 @@ def _pre_deploy():
 
     # check is datastore
     # if not settings.USE_DATASTORE:
-    #     logging.error("USE_DATASTORE is False, deploy in datastore")
+    #     logger.error("USE_DATASTORE is False, deploy in datastore")
     #     raise RuntimeError("USE_DATASTORE is False, deploy in datastore")
 
     subprocess.run("npm run build".split(), cwd="vueapp")
 
     global VERSION
     VERSION = None
+    # VERSION = settings.__version__
+    # VERSION = VERSION.replace(".", "-")
 
 
 def _post_deploy():
@@ -84,20 +87,20 @@ def main():
     args = parser.parse_args()
 
     if args.test:
-        logging.info("Deploying in test environment")
+        logger.info("Deploying in test environment")
         set_project(TEST_PROJECT)
     elif args.production:
-        logging.info("Deploying in production environment")
+        logger.info("Deploying in production environment")
         set_project(PROD_PROJECT)
     else:
         parser.error('No environment specified! add -t or -p')
 
     promote = False
     if args.promote:
-        logging.info("Deploying promote")
+        logger.info("Deploying promote")
         promote = True
     elif args.no_promote:
-        logging.info("Deploying no promote")
+        logger.info("Deploying no promote")
     else:
         parser.error('No promote/no promote specified! add --promote or --no-promote')
 
