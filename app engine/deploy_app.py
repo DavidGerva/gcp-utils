@@ -35,7 +35,7 @@ class AppEngineDeployer():
         if self.VERSION is not None and not self.promote:
             self.VERSION += "-np"
 
-    def set_project(self):
+    def _set_project(self):
 
         project = self.TEST_PROJECT if self.test_env else self.PROD_PROJECT
 
@@ -44,7 +44,7 @@ class AppEngineDeployer():
         subprocess.run(command.split(), stdout=subprocess.PIPE)
 
     def _pre_deploy(self):
-        pass
+        self._set_project()
 
     def deploy_ae(self):
 
@@ -67,6 +67,7 @@ class AppEngineDeployer():
 # =================================
 
 # from patent_box import settings
+# import os
 
 
 class ActualDeployer(AppEngineDeployer):
@@ -82,11 +83,20 @@ class ActualDeployer(AppEngineDeployer):
         return super()._set_variables()
 
     def _pre_deploy(self):
+        # check_exsistance = ["es_utilities",
+        #                     "elastic_rsa_private_key.p12",
+        #                     "secrets.env"]
+
+        # for element in check_exsistance:
+        #     if not os.path.exists(element):
+        #         raise RuntimeError(f"The given {element} does not exist")
 
         # check is datastore
         # if not settings.USE_DATASTORE:
         #     logging.error("USE_DATASTORE is False, deploy in datastore")
         #     raise RuntimeError("USE_DATASTORE is False, deploy in datastore")
+
+        # subprocess.run("npm run build".split(), cwd="vueapp")
 
         return super()._pre_deploy()
 
